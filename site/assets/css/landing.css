@@ -1,0 +1,201 @@
+/* A22 landing — cinematic split hero + film-credits portfolio */
+
+:root {
+  --black: #0a0a0c;
+  --ink: #f2f0eb;
+  --muted: #8a8a92;
+  --hairline: rgba(242, 240, 235, 0.22);
+  --accent: #8a1e2d;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--black);
+  color: var(--ink);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* ---- top nav ---- */
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 32px;
+  mix-blend-mode: difference;
+}
+
+.nav .mark {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav .links a {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-left: 28px;
+  opacity: 0.8;
+}
+
+.nav .links a:hover { opacity: 1; }
+
+/* ---- hero: the split ---- */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.hero-left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.plate {
+  text-align: center;
+  padding: 56px 64px;
+  border: 1px solid var(--hairline);
+  animation: plate-in 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.wordmark {
+  font-size: clamp(72px, 10vw, 148px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  margin: 0 0 0 0.12em; /* optically recenter tracked text */
+  animation: track-in 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sub {
+  margin-top: 26px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.55em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: fade-in 2s 0.9s ease both;
+}
+
+@keyframes plate-in { from { opacity: 0; transform: scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes track-in { from { opacity: 0; letter-spacing: 0.34em; } to { opacity: 1; letter-spacing: 0.12em; } }
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- hero right: film ---- */
+
+.hero-right {
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--hairline);
+}
+
+.hero-right video,
+.hero-right .placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* deep-water gradient stands in until Veo clips land in assets/media/ */
+.placeholder {
+  background:
+    radial-gradient(120% 90% at 70% 20%, #12202e 0%, transparent 60%),
+    radial-gradient(140% 100% at 20% 90%, #0d1a2b 0%, transparent 55%),
+    linear-gradient(160deg, #05080d 0%, #0a1420 45%, #04060a 100%);
+  background-size: 200% 200%;
+  animation: drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 100%; }
+}
+
+/* film grain over the whole hero */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- portfolio: film credits ---- */
+
+.portfolio {
+  padding: 140px 24px 160px;
+  text-align: center;
+}
+
+.portfolio h2 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 64px;
+}
+
+.credit {
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 26px 0;
+  border-bottom: 1px solid rgba(242, 240, 235, 0.08);
+}
+
+.credit:first-of-type { border-top: 1px solid rgba(242, 240, 235, 0.08); }
+
+.credit .name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.credit .stage {
+  margin-top: 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---- footer ---- */
+
+footer {
+  padding: 48px 24px 64px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+footer a { color: var(--muted); }
+
+/* ---- mobile: stack the split ---- */
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-left { min-height: 62vh; }
+  .hero-right { min-height: 38vh; border-left: none; border-top: 1px solid var(--hairline); }
+  .plate { padding: 40px 36px; }
+  .nav { padding: 18px 20px; }
+}

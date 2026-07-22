@@ -1,60 +1,41 @@
 #!/usr/bin/env python3
-"""Build the A22 Research site from content/ dossiers. Requires pandoc."""
-import html, pathlib, re, subprocess
+"""Build the A22 site: landing page + research dossiers → site/public/.
+
+Layout of the built site:
+  /index.html                     landing (split hero + portfolio)
+  /research/index.html            dossier index
+  /research/<slug>/...            one dossier per content/<slug>/
+  /assets/...                     css + media, copied verbatim
+
+Inputs:
+  data/portfolio.json             portfolio companies for the landing page
+  content/<slug>/index.md         dossier main page (frontmatter: title, theme,
+                                  verdict, status, created, updated) + subpages
+  site/templates/*.html           {{TOKEN}}-style templates
+  site/assets/media/*.mp4         hero loop videos (optional; placeholder used
+                                  when absent — see scripts/generate_veo.py)
+
+Requires pandoc.
+"""
+import datetime, html, json, pathlib, re, shutil, subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+SITE = ROOT / "site"
+TEMPLATES = SITE / "templates"
+ASSETS = SITE / "assets"
+OUT = SITE / "public"
 CONTENT = ROOT / "content"
-OUT = ROOT / "site" / "public"
-OUT.mkdir(parents=True, exist_ok=True)
+DATA = ROOT / "data"
 
-CSS = """
-:root { --bg:#faf9f6; --panel:#ffffff; --ink:#1a1a1f; --muted:#6f6f78; --line:#e6e3dc;
-  --accent:#8a1e2d; --accent-soft:#f6ebec; --live:#166534; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#131316; --panel:#1c1c21; --ink:#e8e6e3; --muted:#9a9aa3; --line:#2b2b33;
-    --accent:#e0697a; --accent-soft:#311e22; --live:#4ade80; }
-}
-* { box-sizing:border-box; }
-body { margin:0; font:16px/1.7 Georgia,'Times New Roman',serif; background:var(--bg); color:var(--ink); }
-.wrap { max-width:840px; margin:0 auto; padding:48px 28px 96px; }
-header.site { border-bottom:2px solid var(--ink); padding-bottom:18px; margin-bottom:36px; }
-.brand { font:700 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  letter-spacing:.22em; text-transform:uppercase; }
-.brand a { color:var(--ink); text-decoration:none; }
-.brand .a22 { color:var(--accent); }
-.tagline { font-size:13px; color:var(--muted); margin-top:6px;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-h1 { font-size:30px; line-height:1.25; margin:0 0 8px; letter-spacing:-.01em; }
-h2 { font-size:21px; margin:36px 0 10px; }
-h3 { font-size:17px; margin:24px 0 8px; }
-a { color:var(--accent); }
-em { color:var(--muted); }
-code { font-size:14px; background:var(--accent-soft); padding:1px 5px; border-radius:4px; }
-blockquote { margin:14px 0; padding:10px 18px; border-left:3px solid var(--accent); background:var(--panel); }
-hr { border:none; border-top:1px solid var(--line); margin:28px 0; }
-.tablewrap { overflow-x:auto; margin:16px 0; border:1px solid var(--line); border-radius:6px; }
-table { border-collapse:collapse; width:100%; font-size:14px; background:var(--panel);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-th, td { padding:9px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-th { font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
-tr:last-child td { border-bottom:none; }
-.meta { font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; }
-.meta .theme { color:var(--accent); font-weight:600; }
-.badge { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:1px 10px; }
-.badge.living { color:var(--live); border-color:var(--live); }
-.card { display:block; border:1px solid var(--line); border-radius:8px; background:var(--panel);
-  padding:20px 22px; margin:18px 0; text-decoration:none; color:var(--ink); }
-.card:hover { border-color:var(--accent); }
-.card h2 { margin:2px 0 6px; font-size:22px; }
-.card .verdict { color:var(--muted); font-style:italic; margin:0; }
-.subnav { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:13.5px;
-  border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:12px 16px; margin:22px 0; }
-.subnav b { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
-.subnav a { display:inline-block; margin:3px 12px 3px 0; }
-.crumb { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:13px; margin-bottom:14px; }
-@media (max-width:600px){ .wrap{padding:28px 16px 64px} h1{font-size:25px} }
-"""
+
+# ---------- helpers ----------
+
+def template(name, **tokens):
+    """Load a template and substitute {{TOKEN}} placeholders."""
+    text = (TEMPLATES / name).read_text()
+    for key, value in tokens.items():
+        text = text.replace("{{" + key + "}}", value)
+    return text
 
 
 def parse_frontmatter(text):
@@ -70,71 +51,130 @@ def parse_frontmatter(text):
     return meta, body
 
 
-def render_md(md_text):
+def markdown_to_html(md_text):
     h = subprocess.run(["pandoc", "-f", "gfm", "-t", "html"],
                        input=md_text, capture_output=True, text=True, check=True).stdout
     h = re.sub(r'href="((?!https?://)[^"]+)\.md"', r'href="\1.html"', h)
     return h.replace("<table>", '<div class="tablewrap"><table>').replace("</table>", "</table></div>")
 
 
-def shell(title, body_html, depth=0):
-    up = "../" * depth
-    return f"""<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} — A22 Research</title><style>{CSS}</style></head>
-<body><div class="wrap"><header class="site">
-<div class="brand"><a href="{up}index.html"><span class="a22">A22</span> RESEARCH</a></div>
-<div class="tagline">A running loop of intelligence across themes.</div>
-</header>{body_html}</div></body></html>"""
-
-
-def page_title(md_path):
+def first_heading(md_path):
     for line in md_path.read_text().splitlines():
         if line.startswith("# "):
             return line[2:].strip()
     return md_path.stem.replace("-", " ").title()
 
 
-dossiers = []
-for d in sorted(CONTENT.iterdir()) if CONTENT.exists() else []:
-    idx = d / "index.md"
-    if not d.is_dir() or not idx.exists():
-        continue
-    meta, body = parse_frontmatter(idx.read_text())
-    subs = sorted(p for p in d.rglob("*.md") if p != idx)
-    dossiers.append((d.name, meta, body, subs))
+def write_page(out_path, title, body_html):
+    """Render a research page into the shared shell; ROOT is the relative path
+    back to the site root from this page's directory."""
+    depth = len(out_path.relative_to(OUT).parts) - 1
+    page = template("page.html", TITLE=html.escape(title), ROOT="../" * depth, BODY=body_html)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(page)
 
-for slug, meta, body, subs in dossiers:
-    out_dir = OUT / slug
-    out_dir.mkdir(parents=True, exist_ok=True)
+
+# ---------- landing ----------
+
+def build_landing():
+    portfolio = json.loads((DATA / "portfolio.json").read_text())
+    credits = "\n".join(
+        f'<div class="credit"><div class="name">{html.escape(c["name"])}</div>'
+        f'<div class="stage">{html.escape(c["stage"])}</div></div>'
+        for c in portfolio)
+
+    videos = sorted((ASSETS / "media").glob("*.mp4")) if (ASSETS / "media").exists() else []
+    if videos:
+        sources = json.dumps([f"assets/media/{v.name}" for v in videos])
+        media = ('<video id="hero-film" autoplay muted playsinline '
+                 f'src="assets/media/{videos[0].name}"></video>')
+        script = f"""<script>
+  // cycle through available loops; a single clip just loops itself
+  const clips = {sources};
+  const film = document.getElementById("hero-film");
+  let i = 0;
+  film.loop = clips.length === 1;
+  film.addEventListener("ended", () => {{
+    i = (i + 1) % clips.length;
+    film.src = clips[i];
+    film.play();
+  }});
+</script>"""
+    else:
+        media = '<div class="placeholder"></div>'
+        script = ""
+
+    page = template("landing.html", MEDIA=media, MEDIA_SCRIPT=script,
+                    PORTFOLIO=credits, YEAR=str(datetime.date.today().year))
+    (OUT / "index.html").write_text(page)
+    print(f"built landing ({len(portfolio)} portfolio companies, "
+          f"{len(videos) or 'no'} hero video(s))")
+
+
+# ---------- research ----------
+
+def load_dossiers():
+    dossiers = []
+    if CONTENT.exists():
+        for d in sorted(CONTENT.iterdir()):
+            idx = d / "index.md"
+            if d.is_dir() and idx.exists():
+                meta, body = parse_frontmatter(idx.read_text())
+                subs = sorted(p for p in d.rglob("*.md") if p != idx)
+                dossiers.append((d.name, meta, body, subs))
+    return dossiers
+
+
+def build_dossier(slug, meta, body, subs):
+    out_dir = OUT / "research" / slug
     status = meta.get("status", "living")
-    head = (f'<div class="meta"><span class="theme">{html.escape(meta.get("theme",""))}</span> · '
+    head = (f'<div class="meta"><span class="theme">{html.escape(meta.get("theme", ""))}</span> · '
             f'<span class="badge {status}">{status}</span> · '
-            f'first published {meta.get("created","")} · updated {meta.get("updated","")}</div>')
+            f'first published {meta.get("created", "")} · updated {meta.get("updated", "")}</div>')
     subnav = ""
     if subs:
         links = " ".join(
-            f'<a href="{p.relative_to(CONTENT / slug).with_suffix(".html")}">{html.escape(page_title(p))}</a>'
+            f'<a href="{p.relative_to(CONTENT / slug).with_suffix(".html")}">{html.escape(first_heading(p))}</a>'
             for p in subs)
         subnav = f'<div class="subnav"><b>In this dossier</b><br>{links}</div>'
-    (out_dir / "index.html").write_text(shell(meta.get("title", slug), head + render_md(body) + subnav, depth=1))
+    write_page(out_dir / "index.html", meta.get("title", slug),
+               head + markdown_to_html(body) + subnav)
+
     for p in subs:
         rel = p.relative_to(CONTENT / slug)
-        sub_out = out_dir / rel.with_suffix(".html")
-        sub_out.parent.mkdir(parents=True, exist_ok=True)
         back = "../" * (len(rel.parts) - 1)
-        crumb = f'<div class="crumb"><a href="{back}index.html">← {html.escape(meta.get("title", slug))}</a></div>'
-        sub_out.write_text(shell(page_title(p), crumb + render_md(p.read_text()), depth=1 + len(rel.parts) - 1))
-    print(f"built {slug} ({1 + len(subs)} pages)")
+        crumb = (f'<div class="crumb"><a href="{back}index.html">'
+                 f'← {html.escape(meta.get("title", slug))}</a></div>')
+        write_page(out_dir / rel.with_suffix(".html"), first_heading(p),
+                   crumb + markdown_to_html(p.read_text()))
 
-cards = ""
-for slug, meta, body, subs in sorted(dossiers, key=lambda x: x[1].get("updated", ""), reverse=True):
-    cards += (f'<a class="card" href="{slug}/index.html">'
-              f'<div class="meta"><span class="theme">{html.escape(meta.get("theme",""))}</span> · '
-              f'updated {meta.get("updated","")}</div>'
-              f'<h2>{html.escape(meta.get("title", slug))}</h2>'
-              f'<p class="verdict">{html.escape(meta.get("verdict",""))}</p></a>')
-if not cards:
-    cards = "<p><em>Nothing published yet.</em></p>"
-(OUT / "index.html").write_text(shell("A22 Research", f"<h1>Dossiers</h1>{cards}", depth=0))
-print(f"built index ({len(dossiers)} dossiers)\nDone → {OUT}")
+
+def build_research_index(dossiers):
+    cards = ""
+    for slug, meta, _, _ in sorted(dossiers, key=lambda x: x[1].get("updated", ""), reverse=True):
+        cards += (f'<a class="card" href="{slug}/index.html">'
+                  f'<div class="meta"><span class="theme">{html.escape(meta.get("theme", ""))}</span> · '
+                  f'updated {meta.get("updated", "")}</div>'
+                  f'<h2>{html.escape(meta.get("title", slug))}</h2>'
+                  f'<p class="verdict">{html.escape(meta.get("verdict", ""))}</p></a>')
+    if not cards:
+        cards = "<p><em>Nothing published yet.</em></p>"
+    write_page(OUT / "research" / "index.html", "Research", f"<h1>Dossiers</h1>{cards}")
+
+
+# ---------- main ----------
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(ASSETS, OUT / "assets", dirs_exist_ok=True)
+    build_landing()
+    dossiers = load_dossiers()
+    for slug, meta, body, subs in dossiers:
+        build_dossier(slug, meta, body, subs)
+        print(f"built research/{slug}")
+    build_research_index(dossiers)
+    print(f"Done → {OUT}")
+
+
+if __name__ == "__main__":
+    main()
