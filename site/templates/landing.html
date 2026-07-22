@@ -13,6 +13,10 @@
   <div class="curtain-plate">
     <div class="curtain-mark">A22</div>
   </div>
+  <div class="veil-grain"></div>
+  <div class="curtain-lit" aria-hidden="true">
+    <div class="curtain-mark">A22</div>
+  </div>
   <div class="grain"></div>
 </div>
 <div class="lens" id="lens"></div>
@@ -149,7 +153,7 @@
     if (!curtain.isConnected) return;
     vx += (tx - vx) * 0.09;                       // the light trails the hand
     vy += (ty - vy) * 0.09;
-    const r = 175 + Math.sin((now - t0) / 950) * 18;  // it breathes
+    const r = 150 + Math.sin((now - t0) / 950) * 16;  // it breathes
     for (const el of [curtain, lens]) {
       el.style.setProperty("--mx", vx + "px");
       el.style.setProperty("--my", vy + "px");
