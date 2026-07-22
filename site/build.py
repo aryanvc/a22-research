@@ -104,12 +104,12 @@ def build_landing():
             media = '<div class="ph"></div>'
         films.append(
             f'<section class="film{" active" if i == 0 else ""}" style="--h:{hue}" '
-            f'data-file="File {i + 1:03d}" data-name="{html.escape(c["name"])}" '
+            f'data-file="#{i + 1:03d}" data-name="{html.escape(c["name"])}" '
             f'data-stage="{html.escape(c["stage"])}">{media}</section>')
         rail.append(
             f'<a class="idx{" current" if i == 0 else ""}" href="#">'
             f'<span class="nm">{html.escape(c["name"])}</span>'
-            f'<span class="no">{i + 1:03d}</span></a>')
+            f'<span class="no">#{i + 1:03d}</span></a>')
 
     page = template("landing.html", FILMS="\n".join(films), RAIL="\n".join(rail),
                     YEAR=str(datetime.date.today().year))

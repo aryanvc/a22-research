@@ -364,6 +364,17 @@ body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
   text-align: right;
 }
 
+.rail-head {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+
 .idx {
   font-family: var(--mono);
   font-size: 11px;
@@ -429,10 +440,12 @@ body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
     left: 0;
     transform: none;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 16px;
+    gap: 12px 16px;
     text-align: center;
   }
+  .rail-head { flex-basis: 100%; border-bottom: none; margin: 0; padding: 0; }
   .idx .nm { display: none; }
   .nav { padding: 18px 20px; }
   .bar { padding: 16px 20px; }
