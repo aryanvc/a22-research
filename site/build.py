@@ -17,7 +17,7 @@ Inputs:
 
 Requires pandoc.
 """
-import datetime, html, json, pathlib, re, shutil, subprocess
+import datetime, hashlib, html, json, pathlib, re, shutil, subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -35,7 +35,17 @@ def template(name, **tokens):
     text = (TEMPLATES / name).read_text()
     for key, value in tokens.items():
         text = text.replace("{{" + key + "}}", value)
-    return text
+    return stamp_assets(text)
+
+
+def stamp_assets(html_text):
+    """Append a content fingerprint to stylesheet URLs so browsers refetch
+    them whenever the file actually changes (cache busting)."""
+    for css in (ASSETS / "css").glob("*.css"):
+        version = hashlib.md5(css.read_bytes()).hexdigest()[:8]
+        html_text = html_text.replace(f"assets/css/{css.name}",
+                                      f"assets/css/{css.name}?v={version}")
+    return html_text
 
 
 def parse_frontmatter(text):
