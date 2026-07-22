@@ -10,10 +10,47 @@ the dossier's index.md; every other .md in the tree comes along as a subpage
 (relative paths preserved). Re-pushing a slug overwrites its files and bumps
 the `updated` date; `created`, and any flag you omit, are preserved.
 """
-import argparse, datetime, pathlib, shutil, subprocess, sys
+import argparse, datetime, json, pathlib, shutil, subprocess, sys, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent
 CONTENT = ROOT / "content"
+
+
+def load_env():
+    env = {}
+    envfile = ROOT / ".env"
+    if envfile.exists():
+        for line in envfile.read_text().splitlines():
+            if "=" in line and not line.startswith("#"):
+                k, v = line.split("=", 1)
+                env[k.strip()] = v.strip()
+    return env
+
+
+def sync_supabase(meta, slug, page_count):
+    env = load_env()
+    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("supabase: no credentials in .env, skipping sync")
+        return
+    headers = {"apikey": key, "Authorization": f"Bearer {key}",
+               "Content-Type": "application/json"}
+    row = {"slug": slug, "title": meta["title"], "theme": meta["theme"],
+           "verdict": meta["verdict"], "status": meta["status"],
+           "created": meta["created"], "updated": meta["updated"],
+           "page_count": page_count,
+           "synced_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    req = urllib.request.Request(
+        f"{url}/rest/v1/dossiers?on_conflict=slug", method="POST",
+        data=json.dumps(row).encode(),
+        headers={**headers, "Prefer": "resolution=merge-duplicates"})
+    urllib.request.urlopen(req)
+    req = urllib.request.Request(
+        f"{url}/rest/v1/push_log", method="POST",
+        data=json.dumps({"slug": slug, "page_count": page_count}).encode(),
+        headers=headers)
+    urllib.request.urlopen(req)
+    print(f"supabase: synced dossier '{slug}' + logged push")
 
 
 def parse_frontmatter(text):
@@ -102,6 +139,7 @@ def main():
 
     print(f"pushed {len(copied)} page(s) → content/{args.slug}/")
     subprocess.run([sys.executable, str(ROOT / "site" / "build.py")], check=True)
+    sync_supabase(meta, args.slug, len(copied))
 
 
 if __name__ == "__main__":

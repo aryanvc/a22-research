@@ -26,3 +26,9 @@ cd site/public && python3 -m http.server 8426
 ```
 
 Static output — deployable to any host (Vercel/Netlify/Pages) when this goes public.
+
+## Infrastructure
+
+- **Domain:** a22vc.com (GitHub Pages custom domain)
+- **Deploy:** push to `main` → GitHub Actions builds (pandoc + `site/build.py`) → GitHub Pages
+- **Supabase:** project `a22-research` (ref in `.env`, not committed). `push.py` upserts each dossier into `dossiers` and appends to `push_log` — the queryable index of the corpus and its history. Public read via RLS; writes via service key.
