@@ -77,34 +77,34 @@ def write_page(out_path, title, body_html):
 # ---------- landing ----------
 
 def build_landing():
-    """One 'scene' per portfolio company: real footage if a clip exists at
-    assets/media/portfolio/<id>.mp4, otherwise a per-company animated
-    placeholder keyed by its hue in portfolio.json."""
+    """The screening room: one stacked 'film' layer per portfolio company —
+    real footage if a clip exists at assets/media/portfolio/<id>.mp4,
+    otherwise a per-company animated placeholder keyed by its hue in
+    portfolio.json. The template's script handles the projector transitions."""
     portfolio = json.loads((DATA / "portfolio.json").read_text())
-    scenes, clips = [], 0
+    films, rail, clips = [], [], 0
     for i, c in enumerate(portfolio):
-        file_no = f"File {i + 1:03d}"
+        hue = c.get("hue", 214)
         clip = ASSETS / "media" / "portfolio" / f"{c['id']}.mp4"
         if clip.exists():
-            media = (f'<video autoplay muted loop playsinline '
+            media = (f'<video muted loop playsinline preload="auto" '
                      f'src="assets/media/portfolio/{clip.name}"></video>')
             clips += 1
         else:
-            media = f'<div class="ph" style="--h:{c.get("hue", 214)}"></div>'
-        scenes.append(
-            f'<a class="scene" href="#" data-file="{file_no}" '
-            f'data-name="{html.escape(c["name"])}" data-stage="{html.escape(c["stage"])}">'
-            f'{media}<div class="grain"></div>'
-            f'<div class="scene-meta"><span class="file">{file_no}</span>'
-            f'<span class="stage">{html.escape(c["stage"])}</span></div>'
-            f'<h2 class="scene-name">{html.escape(c["name"])}</h2>'
-            f'<span class="view">View file →</span></a>')
+            media = '<div class="ph"></div>'
+        films.append(
+            f'<section class="film{" active" if i == 0 else ""}" style="--h:{hue}" '
+            f'data-file="File {i + 1:03d}" data-name="{html.escape(c["name"])}" '
+            f'data-stage="{html.escape(c["stage"])}">{media}</section>')
+        rail.append(
+            f'<a class="idx{" current" if i == 0 else ""}" href="#">'
+            f'<span class="nm">{html.escape(c["name"])}</span>'
+            f'<span class="no">{i + 1:03d}</span></a>')
 
-    page = template("landing.html", SCENES="\n".join(scenes),
-                    FILE_COUNT=f"{len(portfolio):03d}",
+    page = template("landing.html", FILMS="\n".join(films), RAIL="\n".join(rail),
                     YEAR=str(datetime.date.today().year))
     (OUT / "index.html").write_text(page)
-    print(f"built landing ({len(portfolio)} files, {clips} with footage)")
+    print(f"built landing ({len(portfolio)} films, {clips} with footage)")
 
 
 # ---------- research ----------

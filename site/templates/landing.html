@@ -16,67 +16,139 @@
   </span>
 </nav>
 
-<header class="masthead">
-  <div class="folio">Index · Files 001–{{FILE_COUNT}}</div>
-  <h1>Portfolio</h1>
-</header>
+<main class="theater">
+  <div class="room-glow" id="glow-a"></div>
+  <div class="room-glow" id="glow-b"></div>
 
-<main class="reel">
-{{SCENES}}
-</main>
-
-<footer>
-  <a href="research/index.html">A22 Research</a> &nbsp;·&nbsp; © {{YEAR}} A22
-</footer>
-
-<div class="lightbox" id="lightbox" hidden>
-  <button class="lb-close" aria-label="Close">×</button>
-  <button class="lb-prev" aria-label="Previous">←</button>
-  <div class="lb-stage">
-    <div class="lb-frame" id="lb-frame"></div>
-    <div class="lb-meta">
-      <span class="lb-file" id="lb-file"></span>
-      <span class="lb-name" id="lb-name"></span>
-      <span class="lb-stage-tag" id="lb-stage"></span>
+  <div class="frame-wrap">
+    <div class="frame" id="frame">
+      {{FILMS}}
+      <div class="grain"></div>
+      <div class="shutter" id="shutter"></div>
+    </div>
+    <div class="progress"><span id="progress-bar"></span></div>
+    <div class="titles" id="titles">
+      <span class="file-no" id="t-file"></span>
+      <h1 class="film-name" id="t-name"></h1>
+      <span class="stage-tag" id="t-stage"></span>
     </div>
   </div>
-  <button class="lb-next" aria-label="Next">→</button>
-</div>
+
+  <button class="arrow arrow-prev" id="prev" aria-label="Previous">←</button>
+  <button class="arrow arrow-next" id="next" aria-label="Next">→</button>
+
+  <aside class="rail" id="rail">
+    {{RAIL}}
+  </aside>
+
+  <footer class="bar">
+    <span>© {{YEAR}} A22</span>
+    <a href="research/index.html">A22 Research →</a>
+  </footer>
+</main>
 
 <script>
 (() => {
-  const scenes = [...document.querySelectorAll(".scene")];
-  const lb = document.getElementById("lightbox");
-  const frame = document.getElementById("lb-frame");
-  let current = -1;
+  const films = [...document.querySelectorAll(".film")];
+  const idx = [...document.querySelectorAll(".idx")];
+  const glows = [document.getElementById("glow-a"), document.getElementById("glow-b")];
+  const shutter = document.getElementById("shutter");
+  const bar = document.getElementById("progress-bar");
+  const titles = document.getElementById("titles");
+  const HOLD = 9000, SWEEP = 950;
+  let current = 0, glowOn = 0, timer = null, locked = false, paused = false;
 
-  function show(i) {
-    current = (i + scenes.length) % scenes.length;
-    const s = scenes[current];
-    frame.innerHTML = "";
-    const media = s.querySelector("video, .ph").cloneNode(true);
-    if (media.tagName === "VIDEO") { media.muted = true; media.loop = true; media.autoplay = true; media.play(); }
-    frame.appendChild(media);
-    document.getElementById("lb-file").textContent = s.dataset.file;
-    document.getElementById("lb-name").textContent = s.dataset.name;
-    document.getElementById("lb-stage").textContent = s.dataset.stage;
-    lb.hidden = false;
-    document.body.style.overflow = "hidden";
+  function setTitles(f) {
+    document.getElementById("t-file").textContent = f.dataset.file;
+    document.getElementById("t-name").textContent = f.dataset.name;
+    document.getElementById("t-stage").textContent = f.dataset.stage;
+    titles.classList.remove("enter");
+    void titles.offsetWidth; // restart entrance animation
+    titles.classList.add("enter");
   }
 
-  function close() { lb.hidden = true; frame.innerHTML = ""; document.body.style.overflow = ""; }
+  function setGlow(hue) {
+    const next = glows[1 - glowOn];
+    next.style.setProperty("--h", hue);
+    next.classList.add("on");
+    glows[glowOn].classList.remove("on");
+    glowOn = 1 - glowOn;
+  }
 
-  scenes.forEach((s, i) => s.addEventListener("click", e => { e.preventDefault(); show(i); }));
-  lb.querySelector(".lb-close").addEventListener("click", close);
-  lb.querySelector(".lb-prev").addEventListener("click", () => show(current - 1));
-  lb.querySelector(".lb-next").addEventListener("click", () => show(current + 1));
-  lb.addEventListener("click", e => { if (e.target === lb) close(); });
+  function media(f) { return f.querySelector("video"); }
+
+  function runProgress() {
+    bar.style.transition = "none";
+    bar.style.width = "0";
+    void bar.offsetWidth;
+    bar.style.transition = `width ${HOLD}ms linear`;
+    bar.style.width = "100%";
+  }
+
+  function show(i, instant = false) {
+    if (locked) return;
+    const target = (i + films.length) % films.length;
+    if (target === current && !instant) return;
+    locked = true;
+
+    const from = films[current], to = films[target];
+    current = target;
+    idx.forEach((a, n) => a.classList.toggle("current", n === current));
+    setGlow(to.style.getPropertyValue("--h") || "214");
+
+    if (instant) {
+      to.classList.add("active");
+      setTitles(to);
+      const v = media(to); if (v) v.play();
+      locked = false;
+      schedule();
+      return;
+    }
+
+    shutter.classList.remove("sweep");
+    void shutter.offsetWidth;
+    shutter.classList.add("sweep");
+
+    setTimeout(() => {           // midpoint of the sweep: swap reels
+      from.classList.remove("active");
+      to.classList.add("active");
+      const vf = media(from); if (vf) vf.pause();
+      const vt = media(to); if (vt) { vt.currentTime = 0; vt.play(); }
+      setTitles(to);
+    }, SWEEP * 0.45);
+
+    setTimeout(() => { locked = false; schedule(); }, SWEEP);
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (paused) return;
+    runProgress();
+    timer = setTimeout(() => show(current + 1), HOLD);
+  }
+
+  document.getElementById("prev").addEventListener("click", () => show(current - 1));
+  document.getElementById("next").addEventListener("click", () => show(current + 1));
+  idx.forEach((a, n) => a.addEventListener("click", e => { e.preventDefault(); show(n); }));
   document.addEventListener("keydown", e => {
-    if (lb.hidden) return;
-    if (e.key === "Escape") close();
     if (e.key === "ArrowLeft") show(current - 1);
     if (e.key === "ArrowRight") show(current + 1);
   });
+
+  const frame = document.getElementById("frame");
+  frame.addEventListener("mouseenter", () => { paused = true; clearTimeout(timer);
+    bar.style.transition = "none"; });
+  frame.addEventListener("mouseleave", () => { paused = false; schedule(); });
+
+  // touch: tap left/right half of the frame
+  frame.addEventListener("click", e => {
+    if (window.matchMedia("(hover: hover)").matches) return;
+    const x = e.clientX - frame.getBoundingClientRect().left;
+    show(current + (x < frame.clientWidth / 2 ? -1 : 1));
+  });
+
+  films.forEach(f => { const v = media(f); if (v && !f.classList.contains("active")) v.pause(); });
+  show(0, true);
 })();
 </script>
 </body>
