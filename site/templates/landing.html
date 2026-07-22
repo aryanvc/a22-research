@@ -9,6 +9,14 @@
 </head>
 <body>
 
+<div class="curtain" id="curtain">
+  <div class="curtain-plate">
+    <div class="curtain-mark">A22</div>
+    <button class="enter-btn" id="enter-btn">Enter Portfolio</button>
+  </div>
+  <div class="grain"></div>
+</div>
+
 <nav class="nav">
   <a class="mark" href="index.html">A22</a>
   <span class="links">
@@ -56,7 +64,7 @@
   const bar = document.getElementById("progress-bar");
   const titles = document.getElementById("titles");
   const HOLD = 9000, SWEEP = 950;
-  let current = 0, glowOn = 0, timer = null, locked = false, paused = false;
+  let current = 0, glowOn = 0, timer = null, locked = false, paused = false, entered = false;
 
   function setTitles(f) {
     document.getElementById("t-file").textContent = f.dataset.file;
@@ -122,10 +130,24 @@
 
   function schedule() {
     clearTimeout(timer);
-    if (paused) return;
+    if (paused || !entered) return;
     runProgress();
     timer = setTimeout(() => show(current + 1), HOLD);
   }
+
+  // ---- cold open ----
+  const curtain = document.getElementById("curtain");
+  function enter() {
+    if (entered) return;
+    entered = true;
+    curtain.classList.add("exit");
+    document.body.classList.add("entered");
+    const v = media(films[current]); if (v) { v.currentTime = 0; v.play(); }
+    setTimeout(() => curtain.remove(), 1700);
+    setTimeout(() => { setTitles(films[current]); schedule(); }, 1150);
+  }
+  document.getElementById("enter-btn").addEventListener("click", enter);
+  document.addEventListener("keydown", e => { if (!entered && e.key === "Enter") enter(); });
 
   document.getElementById("prev").addEventListener("click", () => show(current - 1));
   document.getElementById("next").addEventListener("click", () => show(current + 1));

@@ -22,6 +22,86 @@ html, body {
   font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+/* ---- the curtain (cold open) ---- */
+
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--black);
+  transition: opacity 1.1s ease 0.4s;
+}
+
+.curtain-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+.curtain-mark {
+  font-size: clamp(68px, 9vw, 128px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  margin-left: 0.14em; /* optically recenter tracked text */
+  animation: mark-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mark-in { from { opacity: 0; letter-spacing: 0.34em; } to { opacity: 1; letter-spacing: 0.14em; } }
+
+.enter-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--hairline);
+  padding: 15px 30px 15px 34px;
+  cursor: pointer;
+  animation: rise-in 1.2s 0.9s ease both;
+  transition: border-color 0.5s ease, letter-spacing 0.5s ease;
+}
+
+.enter-btn:hover { border-color: var(--accent); letter-spacing: 0.4em; }
+
+/* leaving: wordmark tracks out like end credits, curtain lifts */
+.curtain.exit { opacity: 0; pointer-events: none; }
+.curtain.exit .curtain-mark { animation: mark-out 1.1s cubic-bezier(0.6, 0, 0.8, 1) both; }
+.curtain.exit .enter-btn { opacity: 0; transition: opacity 0.35s ease; }
+
+@keyframes mark-out { to { opacity: 0; letter-spacing: 0.55em; } }
+
+/* ---- power-on: the room comes to life after the curtain ---- */
+
+body:not(.entered) .nav,
+body:not(.entered) .frame-wrap,
+body:not(.entered) .arrow,
+body:not(.entered) .rail,
+body:not(.entered) .bar,
+body:not(.entered) .room-glow { opacity: 0 !important; }
+
+body.entered .frame-wrap { animation: power-on 1.4s 0.25s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+body.entered .nav  { animation: fade-up 0.9s 1.0s ease backwards; }
+body.entered .rail { animation: fade-up 0.9s 1.15s ease backwards; }
+body.entered .bar  { animation: fade-up 0.9s 1.3s ease backwards; }
+body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
+
+@keyframes power-on {
+  0%   { opacity: 0; transform: scale(0.955); filter: brightness(0); }
+  38%  { opacity: 1; filter: brightness(1.7); }
+  52%  { filter: brightness(0.75); }
+  68%  { filter: brightness(1.2); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes fade-up  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes arrow-in { from { opacity: 0; } to { opacity: 0.35; } }
+
 /* ---- nav ---- */
 
 .nav {
