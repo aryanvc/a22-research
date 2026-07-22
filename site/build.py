@@ -77,38 +77,34 @@ def write_page(out_path, title, body_html):
 # ---------- landing ----------
 
 def build_landing():
+    """One 'scene' per portfolio company: real footage if a clip exists at
+    assets/media/portfolio/<id>.mp4, otherwise a per-company animated
+    placeholder keyed by its hue in portfolio.json."""
     portfolio = json.loads((DATA / "portfolio.json").read_text())
-    credits = "\n".join(
-        f'<div class="credit"><div class="name">{html.escape(c["name"])}</div>'
-        f'<div class="stage">{html.escape(c["stage"])}</div></div>'
-        for c in portfolio)
+    scenes, clips = [], 0
+    for i, c in enumerate(portfolio):
+        file_no = f"File {i + 1:03d}"
+        clip = ASSETS / "media" / "portfolio" / f"{c['id']}.mp4"
+        if clip.exists():
+            media = (f'<video autoplay muted loop playsinline '
+                     f'src="assets/media/portfolio/{clip.name}"></video>')
+            clips += 1
+        else:
+            media = f'<div class="ph" style="--h:{c.get("hue", 214)}"></div>'
+        scenes.append(
+            f'<a class="scene" href="#" data-file="{file_no}" '
+            f'data-name="{html.escape(c["name"])}" data-stage="{html.escape(c["stage"])}">'
+            f'{media}<div class="grain"></div>'
+            f'<div class="scene-meta"><span class="file">{file_no}</span>'
+            f'<span class="stage">{html.escape(c["stage"])}</span></div>'
+            f'<h2 class="scene-name">{html.escape(c["name"])}</h2>'
+            f'<span class="view">View file →</span></a>')
 
-    videos = sorted((ASSETS / "media").glob("*.mp4")) if (ASSETS / "media").exists() else []
-    if videos:
-        sources = json.dumps([f"assets/media/{v.name}" for v in videos])
-        media = ('<video id="hero-film" autoplay muted playsinline '
-                 f'src="assets/media/{videos[0].name}"></video>')
-        script = f"""<script>
-  // cycle through available loops; a single clip just loops itself
-  const clips = {sources};
-  const film = document.getElementById("hero-film");
-  let i = 0;
-  film.loop = clips.length === 1;
-  film.addEventListener("ended", () => {{
-    i = (i + 1) % clips.length;
-    film.src = clips[i];
-    film.play();
-  }});
-</script>"""
-    else:
-        media = '<div class="placeholder"></div>'
-        script = ""
-
-    page = template("landing.html", MEDIA=media, MEDIA_SCRIPT=script,
-                    PORTFOLIO=credits, YEAR=str(datetime.date.today().year))
+    page = template("landing.html", SCENES="\n".join(scenes),
+                    FILE_COUNT=f"{len(portfolio):03d}",
+                    YEAR=str(datetime.date.today().year))
     (OUT / "index.html").write_text(page)
-    print(f"built landing ({len(portfolio)} portfolio companies, "
-          f"{len(videos) or 'no'} hero video(s))")
+    print(f"built landing ({len(portfolio)} files, {clips} with footage)")
 
 
 # ---------- research ----------

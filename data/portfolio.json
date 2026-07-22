@@ -1,9 +1,9 @@
 [
-  { "name": "Micro1", "stage": "Seed" },
-  { "name": "Vatn Systems", "stage": "Pre-Seed" },
-  { "name": "Ironstead", "stage": "Pre-Seed" },
-  { "name": "Valar Atomics", "stage": "Seed" },
-  { "name": "Terpli", "stage": "Acq." },
-  { "name": "Gelato Festival", "stage": "Seed" },
-  { "name": "Drumroll", "stage": "Pre-Seed" }
+  { "id": "micro1",          "name": "Micro1",          "stage": "Seed",     "hue": 214, "blurb": "" },
+  { "id": "vatn-systems",    "name": "Vatn Systems",    "stage": "Pre-Seed", "hue": 196, "blurb": "" },
+  { "id": "ironstead",       "name": "Ironstead",       "stage": "Pre-Seed", "hue": 22,  "blurb": "" },
+  { "id": "valar-atomics",   "name": "Valar Atomics",   "stage": "Seed",     "hue": 32,  "blurb": "" },
+  { "id": "terpli",          "name": "Terpli",          "stage": "Acq.",     "hue": 152, "blurb": "" },
+  { "id": "gelato-festival", "name": "Gelato Festival", "stage": "Seed",     "hue": 340, "blurb": "" },
+  { "id": "drumroll",        "name": "Drumroll",        "stage": "Pre-Seed", "hue": 262, "blurb": "" }
 ]

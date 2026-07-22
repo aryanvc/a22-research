@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
-"""Generate hero-loop videos for the landing page with Google's Veo API.
+"""Generate per-company portfolio footage with Google's Veo API.
 
 Usage:
-  GEMINI_API_KEY=... python3 scripts/generate_veo.py            # all prompts
-  GEMINI_API_KEY=... python3 scripts/generate_veo.py --only 0   # one prompt
-  python3 scripts/generate_veo.py --model veo-2.0-generate-001  # older model
+  GEMINI_API_KEY=... python3 scripts/generate_veo.py --company micro1   # one
+  GEMINI_API_KEY=... python3 scripts/generate_veo.py                    # all
+  python3 scripts/generate_veo.py --model veo-2.0-generate-001          # older model
 
-Output lands in site/assets/media/loop-N.mp4; the site build picks up any
-.mp4 there automatically (and cycles through multiple). Re-run the build
-after generating. The key also reads from .env (GEMINI_API_KEY=...).
+Clips land in site/assets/media/portfolio/<id>.mp4 — the build swaps them in
+for that company's placeholder automatically. Rebuild after generating.
+The key also reads from .env (GEMINI_API_KEY=...).
 
-Veo generation is billed per second of video — check current pricing before
-generating many clips.
+Veo bills per second of generated video — check pricing before a full run;
+start with one company as a test.
+
+Prompts are deliberately abstract motifs (no text, no logos, no factual
+claims about the companies) — mood reels, not documentaries.
 """
 import argparse, json, os, pathlib, sys, time, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MEDIA = ROOT / "site" / "assets" / "media"
+MEDIA = ROOT / "site" / "assets" / "media" / "portfolio"
 API = "https://generativelanguage.googleapis.com/v1beta"
 
-# Cinematic, abstract, brand-adjacent — no text, no people, loop-friendly.
-PROMPTS = [
-    "Slow aerial drift over a vast dark ocean surface at dusk, deep blue-black "
-    "water with faint silver light tracing the swells, heavy 35mm film grain, "
-    "moody cinematic color grade, no text, no people, seamless slow movement",
+STYLE = ("cinematic, heavy 35mm film grain, dark moody color grade, slow "
+         "camera movement, no text, no logos, no people, loop-friendly")
 
-    "Extreme slow motion of deep ocean water seen from below the surface, "
-    "shafts of pale light falling through darkness, particles suspended in the "
-    "water column, near-monochrome navy palette, cinematic film grain, no text",
-
-    "Macro shot of ink dispersing in dark water, slow billowing clouds of "
-    "deep blue and black, high contrast studio lighting, film grain, elegant "
-    "and abstract, no text, no people",
-]
+PROMPTS = {
+    "micro1":          f"Macro glide across glowing circuitry in darkness, points of warm light in shallow depth of field, {STYLE}",
+    "vatn-systems":    f"Deep underwater darkness, a sleek shadow gliding through blue-black water with faint shafts of light, {STYLE}",
+    "ironstead":       f"Slow pan across dark forged metal surfaces, drifting ember sparks, industrial chiaroscuro lighting, {STYLE}",
+    "valar-atomics":   f"Abstract radiant energy core pulsing in darkness, deep amber and blue light blooms, slow drift, {STYLE}",
+    "terpli":          f"Macro botanical silhouettes in drifting mist, deep green-black palette, backlit edges, {STYLE}",
+    "gelato-festival": f"Extreme slow motion of soft cream folding and swirling against black, macro studio lighting, {STYLE}",
+    "drumroll":        f"Warm glaze cascading in extreme slow motion against a black background, macro studio shot, {STYLE}",
+}
 
 
 def api_key():
@@ -74,40 +75,40 @@ def find_video_uri(operation):
     sys.exit(f"Could not locate video URI in response:\n{json.dumps(operation, indent=2)[:2000]}")
 
 
-def generate(prompt, index, model, key):
-    print(f"[{index}] requesting: {prompt[:60]}…")
+def generate(company, prompt, model, key):
+    print(f"[{company}] requesting: {prompt[:70]}…")
     op = request(f"{API}/models/{model}:predictLongRunning", key, {
         "instances": [{"prompt": prompt}],
-        "parameters": {"aspectRatio": "9:16"},
+        "parameters": {"aspectRatio": "16:9"},
     })
     name = op["name"]
     while not op.get("done"):
         time.sleep(15)
         op = request(f"{API}/{name}", key)
-        print(f"[{index}] …still generating")
+        print(f"[{company}] …still generating")
     if "error" in op:
-        sys.exit(f"[{index}] generation failed: {op['error']}")
+        sys.exit(f"[{company}] generation failed: {op['error']}")
 
     uri = find_video_uri(op)
-    out = MEDIA / f"loop-{index}.mp4"
     MEDIA.mkdir(parents=True, exist_ok=True)
+    out = MEDIA / f"{company}.mp4"
     req = urllib.request.Request(uri, headers={"x-goog-api-key": key})
     with urllib.request.urlopen(req) as resp:
         out.write_bytes(resp.read())
-    print(f"[{index}] saved {out} ({out.stat().st_size // 1024} KB)")
+    print(f"[{company}] saved {out} ({out.stat().st_size // 1024} KB)")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="veo-3.0-generate-001")
-    ap.add_argument("--only", type=int, help="generate a single prompt by index")
+    ap.add_argument("--company", choices=sorted(PROMPTS), help="generate one company's clip")
     args = ap.parse_args()
 
     key = api_key()
-    todo = [(i, p) for i, p in enumerate(PROMPTS) if args.only in (None, i)]
-    for i, prompt in todo:
-        generate(prompt, i, args.model, key)
-    print("Done. Rebuild the site to pick up new clips: python3 site/build.py")
+    todo = {args.company: PROMPTS[args.company]} if args.company else PROMPTS
+    for company, prompt in todo.items():
+        generate(company, prompt, args.model, key)
+    print("Done. Rebuild to pick up new clips: python3 site/build.py")
 
 
 if __name__ == "__main__":

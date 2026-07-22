@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A22</title>
-<meta name="description" content="A22 — research and capital.">
+<meta name="description" content="A22 — the portfolio, on film.">
 <link rel="stylesheet" href="assets/css/landing.css">
 </head>
 <body>
@@ -12,34 +12,72 @@
 <nav class="nav">
   <a class="mark" href="index.html">A22</a>
   <span class="links">
-    <a href="#portfolio">Portfolio</a>
     <a href="research/index.html">Research</a>
   </span>
 </nav>
 
-<section class="hero">
-  <div class="hero-left">
-    <div class="plate">
-      <h1 class="wordmark">A22</h1>
-      <div class="sub">Research &amp; Capital</div>
-    </div>
-    <div class="grain"></div>
-  </div>
-  <div class="hero-right">
-    {{MEDIA}}
-    <div class="grain"></div>
-  </div>
-</section>
+<header class="masthead">
+  <div class="folio">Index · Files 001–{{FILE_COUNT}}</div>
+  <h1>Portfolio</h1>
+</header>
 
-<section class="portfolio" id="portfolio">
-  <h2>Portfolio</h2>
-  {{PORTFOLIO}}
-</section>
+<main class="reel">
+{{SCENES}}
+</main>
 
 <footer>
   <a href="research/index.html">A22 Research</a> &nbsp;·&nbsp; © {{YEAR}} A22
 </footer>
 
-{{MEDIA_SCRIPT}}
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" aria-label="Close">×</button>
+  <button class="lb-prev" aria-label="Previous">←</button>
+  <div class="lb-stage">
+    <div class="lb-frame" id="lb-frame"></div>
+    <div class="lb-meta">
+      <span class="lb-file" id="lb-file"></span>
+      <span class="lb-name" id="lb-name"></span>
+      <span class="lb-stage-tag" id="lb-stage"></span>
+    </div>
+  </div>
+  <button class="lb-next" aria-label="Next">→</button>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const lb = document.getElementById("lightbox");
+  const frame = document.getElementById("lb-frame");
+  let current = -1;
+
+  function show(i) {
+    current = (i + scenes.length) % scenes.length;
+    const s = scenes[current];
+    frame.innerHTML = "";
+    const media = s.querySelector("video, .ph").cloneNode(true);
+    if (media.tagName === "VIDEO") { media.muted = true; media.loop = true; media.autoplay = true; media.play(); }
+    frame.appendChild(media);
+    document.getElementById("lb-file").textContent = s.dataset.file;
+    document.getElementById("lb-name").textContent = s.dataset.name;
+    document.getElementById("lb-stage").textContent = s.dataset.stage;
+    lb.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function close() { lb.hidden = true; frame.innerHTML = ""; document.body.style.overflow = ""; }
+
+  scenes.forEach((s, i) => s.addEventListener("click", e => { e.preventDefault(); show(i); }));
+  lb.querySelector(".lb-close").addEventListener("click", close);
+  lb.querySelector(".lb-prev").addEventListener("click", () => show(current - 1));
+  lb.querySelector(".lb-next").addEventListener("click", () => show(current + 1));
+  lb.addEventListener("click", e => { if (e.target === lb) close(); });
+  document.addEventListener("keydown", e => {
+    if (lb.hidden) return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") show(current - 1);
+    if (e.key === "ArrowRight") show(current + 1);
+  });
+})();
+</script>
 </body>
 </html>
