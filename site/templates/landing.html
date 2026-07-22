@@ -49,10 +49,16 @@
   <button class="arrow arrow-prev" id="prev" aria-label="Previous">←</button>
   <button class="arrow arrow-next" id="next" aria-label="Next">→</button>
 
-  <aside class="rail" id="rail">
-    <div class="rail-head">Portfolio</div>
-    {{RAIL}}
-  </aside>
+  <div class="lists">
+    <aside class="rail" id="rail">
+      <div class="rail-head">Portfolio</div>
+      {{RAIL}}
+    </aside>
+    <aside class="rail rail-research">
+      <div class="rail-head">Research</div>
+      {{RESEARCH}}
+    </aside>
+  </div>
 
   <footer class="bar">
     <span>© {{YEAR}} A22</span>
@@ -63,7 +69,7 @@
 <script>
 (() => {
   const films = [...document.querySelectorAll(".film")];
-  const idx = [...document.querySelectorAll(".idx")];
+  const idx = [...document.querySelectorAll("#rail .idx")];
   const glows = [document.getElementById("glow-a"), document.getElementById("glow-b")];
   const shutter = document.getElementById("shutter");
   const bar = document.getElementById("progress-bar");

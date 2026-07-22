@@ -86,11 +86,13 @@ def write_page(out_path, title, body_html):
 
 # ---------- landing ----------
 
-def build_landing():
+def build_landing(dossiers):
     """The screening room: one stacked 'film' layer per portfolio company —
     real footage if a clip exists at assets/media/portfolio/<id>.mp4,
     otherwise a per-company animated placeholder keyed by its hue in
-    portfolio.json. The template's script handles the projector transitions."""
+    portfolio.json. The template's script handles the projector transitions.
+    (The film frame is currently hidden in CSS — architecture held; the
+    engine still drives the current-entry highlight and room glow.)"""
     portfolio = json.loads((DATA / "portfolio.json").read_text())
     films, rail, clips = [], [], 0
     for i, c in enumerate(portfolio):
@@ -111,10 +113,18 @@ def build_landing():
             f'<span class="nm">{html.escape(c["name"])}</span>'
             f'<span class="no">#{i + 1:03d}</span></a>')
 
+    research = [
+        f'<a class="idx ridx" href="research/{slug}/index.html">'
+        f'<span class="nm">{html.escape(meta.get("title", slug))}</span>'
+        f'<span class="no">#R{n + 1:02d}</span></a>'
+        for n, (slug, meta, _, _) in enumerate(dossiers)]
+
     page = template("landing.html", FILMS="\n".join(films), RAIL="\n".join(rail),
+                    RESEARCH="\n".join(research),
                     YEAR=str(datetime.date.today().year))
     (OUT / "index.html").write_text(page)
-    print(f"built landing ({len(portfolio)} films, {clips} with footage)")
+    print(f"built landing ({len(portfolio)} films, {clips} with footage, "
+          f"{len(dossiers)} research links)")
 
 
 # ---------- research ----------
@@ -173,8 +183,8 @@ def build_research_index(dossiers):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     shutil.copytree(ASSETS, OUT / "assets", dirs_exist_ok=True)
-    build_landing()
     dossiers = load_dossiers()
+    build_landing(dossiers)
     for slug, meta, body, subs in dossiers:
         build_dossier(slug, meta, body, subs)
         print(f"built research/{slug}")
