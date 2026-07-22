@@ -32,8 +32,30 @@ html, body {
   align-items: center;
   justify-content: center;
   background: var(--black);
+  cursor: pointer;
   transition: opacity 1.1s ease 0.4s;
+  /* the veil: a soft hole follows the cursor (JS drives --mx/--my/--r) */
+  --mx: 50vw; --my: 44vh; --r: 175px;
+  -webkit-mask-image: radial-gradient(circle var(--r) at var(--mx) var(--my),
+    transparent 0%, rgba(0, 0, 0, 0.45) 52%, #000 82%);
+  mask-image: radial-gradient(circle var(--r) at var(--mx) var(--my),
+    transparent 0%, rgba(0, 0, 0, 0.45) 52%, #000 82%);
 }
+
+/* faint light pooled where the veil thins */
+.lens {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  --mx: 50vw; --my: 44vh; --r: 175px;
+  background: radial-gradient(circle var(--r) at var(--mx) var(--my),
+    rgba(242, 240, 235, 0.09) 0%, transparent 72%);
+  transition: opacity 0.9s ease;
+}
+
+.lens.off { opacity: 0; }
 
 .curtain-plate {
   display: flex;
@@ -53,50 +75,34 @@ html, body {
 
 @keyframes mark-in { from { opacity: 0; letter-spacing: 0.34em; } to { opacity: 1; letter-spacing: 0.14em; } }
 
-.enter-btn {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--ink);
-  background: none;
-  border: 1px solid var(--hairline);
-  padding: 15px 30px 15px 34px;
-  cursor: pointer;
-  animation: rise-in 1.2s 0.9s ease both;
-  transition: border-color 0.5s ease, letter-spacing 0.5s ease;
-}
-
-.enter-btn:hover { border-color: var(--accent); letter-spacing: 0.4em; }
-
 /* leaving: wordmark tracks out like end credits, curtain lifts */
 .curtain.exit { opacity: 0; pointer-events: none; }
 .curtain.exit .curtain-mark { animation: mark-out 1.1s cubic-bezier(0.6, 0, 0.8, 1) both; }
-.curtain.exit .enter-btn { opacity: 0; transition: opacity 0.35s ease; }
 
 @keyframes mark-out { to { opacity: 0; letter-spacing: 0.55em; } }
 
-/* ---- power-on: the room comes to life after the curtain ---- */
+/* ---- power-on: the room comes to life after the curtain ----
+   the screening room is live beneath the veil (that's what the light
+   reveals), so only the chrome hides pre-entry; the frame just flickers
+   and settles as the curtain lifts */
 
 body:not(.entered) .nav,
-body:not(.entered) .frame-wrap,
 body:not(.entered) .arrow,
 body:not(.entered) .rail,
-body:not(.entered) .bar,
-body:not(.entered) .room-glow { opacity: 0 !important; }
+body:not(.entered) .bar { opacity: 0 !important; }
 
-body.entered .frame-wrap { animation: power-on 1.4s 0.25s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+body.entered .frame-wrap { animation: power-on 1.4s 0.2s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 body.entered .nav  { animation: fade-up 0.9s 1.0s ease backwards; }
 body.entered .rail { animation: fade-up 0.9s 1.15s ease backwards; }
 body.entered .bar  { animation: fade-up 0.9s 1.3s ease backwards; }
 body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
 
 @keyframes power-on {
-  0%   { opacity: 0; transform: scale(0.955); filter: brightness(0); }
-  38%  { opacity: 1; filter: brightness(1.7); }
-  52%  { filter: brightness(0.75); }
-  68%  { filter: brightness(1.2); }
-  100% { opacity: 1; transform: none; filter: none; }
+  0%   { transform: scale(0.985); filter: brightness(0.85); }
+  35%  { filter: brightness(1.55); }
+  50%  { filter: brightness(0.8); }
+  66%  { filter: brightness(1.18); }
+  100% { transform: none; filter: none; }
 }
 
 @keyframes fade-up  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -161,7 +167,7 @@ body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
 .frame-wrap {
   position: relative;
   z-index: 5;
-  width: min(72vw, 1120px);
+  width: min(48vw, 750px);
 }
 
 .frame {
@@ -382,7 +388,7 @@ body.entered .arrow { animation: arrow-in 0.9s 1.15s ease backwards; }
 /* ---- mobile ---- */
 
 @media (max-width: 760px) {
-  .frame-wrap { width: 92vw; }
+  .frame-wrap { width: 86vw; }
   .titles { flex-wrap: wrap; gap: 10px 16px; margin-top: 16px; }
   .film-name { font-size: 28px; width: 100%; order: 2; }
   .arrow { display: none; }

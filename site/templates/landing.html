@@ -12,10 +12,10 @@
 <div class="curtain" id="curtain">
   <div class="curtain-plate">
     <div class="curtain-mark">A22</div>
-    <button class="enter-btn" id="enter-btn">Enter Portfolio</button>
   </div>
   <div class="grain"></div>
 </div>
+<div class="lens" id="lens"></div>
 
 <nav class="nav">
   <a class="mark" href="index.html">A22</a>
@@ -135,18 +135,41 @@
     timer = setTimeout(() => show(current + 1), HOLD);
   }
 
-  // ---- cold open ----
+  // ---- cold open: the veil ----
+  // the cursor carries a breathing pool of light that melts through the
+  // curtain; clicking anywhere lifts it
   const curtain = document.getElementById("curtain");
+  const lens = document.getElementById("lens");
+  let tx = innerWidth / 2, ty = innerHeight * 0.44, vx = tx, vy = ty;
+  const t0 = performance.now();
+
+  addEventListener("mousemove", e => { tx = e.clientX; ty = e.clientY; });
+
+  function veil(now) {
+    if (!curtain.isConnected) return;
+    vx += (tx - vx) * 0.09;                       // the light trails the hand
+    vy += (ty - vy) * 0.09;
+    const r = 175 + Math.sin((now - t0) / 950) * 18;  // it breathes
+    for (const el of [curtain, lens]) {
+      el.style.setProperty("--mx", vx + "px");
+      el.style.setProperty("--my", vy + "px");
+      el.style.setProperty("--r", r + "px");
+    }
+    requestAnimationFrame(veil);
+  }
+  requestAnimationFrame(veil);
+
   function enter() {
     if (entered) return;
     entered = true;
     curtain.classList.add("exit");
+    lens.classList.add("off");
     document.body.classList.add("entered");
-    const v = media(films[current]); if (v) { v.currentTime = 0; v.play(); }
-    setTimeout(() => curtain.remove(), 1700);
+    const v = media(films[current]); if (v) v.play();
+    setTimeout(() => { curtain.remove(); lens.remove(); }, 1700);
     setTimeout(() => { setTitles(films[current]); schedule(); }, 1150);
   }
-  document.getElementById("enter-btn").addEventListener("click", enter);
+  curtain.addEventListener("click", enter);
   document.addEventListener("keydown", e => { if (!entered && e.key === "Enter") enter(); });
 
   document.getElementById("prev").addEventListener("click", () => show(current - 1));
