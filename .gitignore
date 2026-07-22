@@ -1,0 +1,5 @@
+site/public/
+.env
+.DS_Store
+__pycache__/
+supabase/.temp/
