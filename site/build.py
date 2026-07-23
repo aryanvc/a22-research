@@ -17,7 +17,7 @@ Inputs:
 
 Requires pandoc.
 """
-import datetime, hashlib, html, json, pathlib, re, shutil, subprocess
+import datetime, hashlib, html, json, os, pathlib, re, shutil, subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -113,8 +113,9 @@ def build_landing(dossiers):
             f'<span class="nm">{html.escape(c["name"])}</span>'
             f'<span class="no">#{i + 1:03d}</span></a>')
 
+    # Research moved behind the login — entries deep-link into the private app.
     research = [
-        f'<a class="idx ridx" href="research/{slug}/index.html">'
+        f'<a class="idx ridx" href="https://app.a22vc.com/research/{slug}">'
         f'<span class="nm">{html.escape(meta.get("title", slug))}</span>'
         f'<span class="no">#R{n + 1:02d}</span></a>'
         for n, (slug, meta, _, _) in enumerate(dossiers)]
@@ -185,10 +186,17 @@ def main():
     shutil.copytree(ASSETS, OUT / "assets", dirs_exist_ok=True)
     dossiers = load_dossiers()
     build_landing(dossiers)
-    for slug, meta, body, subs in dossiers:
-        build_dossier(slug, meta, body, subs)
-        print(f"built research/{slug}")
-    build_research_index(dossiers)
+    # Public research pages retired 2026-07-23 — research now lives behind the
+    # login at app.a22vc.com (see nexus/frontend). Set PUBLIC_RESEARCH=1 to
+    # temporarily publish them here again; the build code is kept intact.
+    if os.environ.get("PUBLIC_RESEARCH") == "1":
+        for slug, meta, body, subs in dossiers:
+            build_dossier(slug, meta, body, subs)
+            print(f"built research/{slug}")
+        build_research_index(dossiers)
+    else:
+        shutil.rmtree(OUT / "research", ignore_errors=True)
+        print("research: skipped (behind login at app.a22vc.com)")
     print(f"Done → {OUT}")
 
 

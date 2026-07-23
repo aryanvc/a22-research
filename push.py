@@ -140,6 +140,9 @@ def main():
     print(f"pushed {len(copied)} page(s) → content/{args.slug}/")
     subprocess.run([sys.executable, str(ROOT / "site" / "build.py")], check=True)
     sync_supabase(meta, args.slug, len(copied))
+    print("reminder: research serves from the private app — run "
+          "~/nexus/frontend/scripts/sync-research.sh && npx vercel --prod "
+          "(from ~/nexus/frontend) to publish it there")
 
 
 if __name__ == "__main__":
