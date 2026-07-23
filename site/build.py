@@ -113,19 +113,12 @@ def build_landing(dossiers):
             f'<span class="nm">{html.escape(c["name"])}</span>'
             f'<span class="no">#{i + 1:03d}</span></a>')
 
-    # Research moved behind the login — entries deep-link into the private app.
-    research = [
-        f'<a class="idx ridx" href="https://app.a22vc.com/research/{slug}">'
-        f'<span class="nm">{html.escape(meta.get("title", slug))}</span>'
-        f'<span class="no">#R{n + 1:02d}</span></a>'
-        for n, (slug, meta, _, _) in enumerate(dossiers)]
-
+    # Research is not shown on the landing page — it lives behind the login
+    # at app.a22vc.com (reachable via the nav Login link).
     page = template("landing.html", FILMS="\n".join(films), RAIL="\n".join(rail),
-                    RESEARCH="\n".join(research),
                     YEAR=str(datetime.date.today().year))
     (OUT / "index.html").write_text(page)
-    print(f"built landing ({len(portfolio)} films, {clips} with footage, "
-          f"{len(dossiers)} research links)")
+    print(f"built landing ({len(portfolio)} films, {clips} with footage)")
 
 
 # ---------- research ----------
