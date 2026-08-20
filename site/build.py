@@ -104,13 +104,16 @@ def build_landing(dossiers):
             clips += 1
         else:
             media = '<div class="ph"></div>'
+        markup = html.escape(str(c.get("markup", "")).strip())
+        mk_attr = f' data-markup="{markup}"' if markup else ""
+        mk_span = f'<span class="mk">{markup}</span>' if markup else ""
         films.append(
             f'<section class="film{" active" if i == 0 else ""}" style="--h:{hue}" '
             f'data-file="#{i + 1:03d}" data-name="{html.escape(c["name"])}" '
-            f'data-stage="{html.escape(c["stage"])}">{media}</section>')
+            f'data-stage="{html.escape(c["stage"])}"{mk_attr}>{media}</section>')
         rail.append(
             f'<a class="idx{" current" if i == 0 else ""}" href="#">'
-            f'<span class="nm">{html.escape(c["name"])}</span>'
+            f'<span class="nm">{html.escape(c["name"])}</span>{mk_span}'
             f'<span class="no">#{i + 1:03d}</span></a>')
 
     # Research is not shown on the landing page — it lives behind the login

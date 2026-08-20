@@ -41,7 +41,7 @@
     <div class="progress"><span id="progress-bar"></span></div>
     <div class="titles" id="titles">
       <span class="file-no" id="t-file"></span>
-      <h1 class="film-name" id="t-name"></h1>
+      <h1 class="film-name" id="t-name"><span id="t-name-text"></span><span class="markup" id="t-markup"></span></h1>
       <span class="stage-tag" id="t-stage"></span>
     </div>
   </div>
@@ -74,7 +74,10 @@
 
   function setTitles(f) {
     document.getElementById("t-file").textContent = f.dataset.file;
-    document.getElementById("t-name").textContent = f.dataset.name;
+    document.getElementById("t-name-text").textContent = f.dataset.name;
+    const mk = document.getElementById("t-markup");
+    mk.textContent = f.dataset.markup || "";
+    mk.style.display = f.dataset.markup ? "" : "none";
     document.getElementById("t-stage").textContent = f.dataset.stage;
     titles.classList.remove("enter");
     void titles.offsetWidth; // restart entrance animation
