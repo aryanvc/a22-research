@@ -5,5 +5,6 @@
   { "id": "valar-atomics",   "name": "Valar Atomics",   "stage": "Seed",     "hue": 32,  "markup": "",     "blurb": "" },
   { "id": "terpli",          "name": "Terpli",          "stage": "Acq.",     "hue": 152, "markup": "",     "blurb": "" },
   { "id": "gelato-festival", "name": "Gelato Festival", "stage": "Seed",     "hue": 340, "markup": "1×",   "blurb": "" },
-  { "id": "drumroll",        "name": "Drumroll",        "stage": "Pre-Seed", "hue": 262, "markup": "3×",   "blurb": "" }
+  { "id": "drumroll",        "name": "Drumroll",        "stage": "Pre-Seed", "hue": 262, "markup": "3×",   "blurb": "" },
+  { "id": "firsthold",       "name": "FirstHold",       "stage": "Pre-Seed", "hue": 0,   "markup": "1.7×", "blurb": "" }
 ]
